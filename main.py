@@ -14,6 +14,14 @@ def abrir_estoque():
 
     with ARQUIVO_ESTOQUE.open("r", encoding="utf-8", newline="") as arquivo:
         leitor = csv.DictReader(arquivo)
+        campo_quantidade = next(
+            (
+                campo
+                for campo in leitor.fieldnames or []
+                if campo in ("quantidade", "quantidade.preco")
+            ),
+            "quantidade",
+        )
         estoque = {}
 
         for linha in leitor:
@@ -22,9 +30,9 @@ def abrir_estoque():
                 continue
 
             try:
-                quantidade = int(linha.get("quantidade", 0))
-            except ValueError:
-                quantidade = 0
+                quantidade = float(linha.get(campo_quantidade, 0))
+            except (TypeError, ValueError):
+                quantidade = 0.0
 
             estoque[produto] = quantidade
 
@@ -39,9 +47,21 @@ def verificar_estoque():
         print("Estoque vazio.")
         return
 
-    print("\nProdutos no estoque:")
+    largura_produto = max(len("Produto"), *(len(produto) for produto in estoque))
+    largura_quantidade = max(
+        len("Quantidade"),
+        *(len(f"{quantidade:.2f}") for quantidade in estoque.values()),
+    )
+    separador = "+" + "-" * (largura_produto + 2) + "+" + "-" * (largura_quantidade + 2) + "+"
+
+    print("\n" + separador)
+    print(f"| {'Produto':<{largura_produto}} | {'Quantidade':>{largura_quantidade}} |")
+    print(separador)
     for produto, quantidade in estoque.items():
-        print(f"- {produto}: {quantidade}")
+        print(f"| {produto:<{largura_produto}} | {quantidade:>{largura_quantidade}.2f} |")
+    print(separador)
+    total = sum(estoque.values())
+    print(f"Total: {total:.2f}")
 
 
 def fechar_estoque():
